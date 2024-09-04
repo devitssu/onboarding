@@ -5,6 +5,7 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 @Getter
 @Entity
@@ -30,5 +31,9 @@ public class User {
         this.password = password;
         this.nickname = nickname;
         this.role = role;
+    }
+
+    public boolean checkPassword(String raw, PasswordEncoder passwordEncoder) {
+        return passwordEncoder.matches(raw, this.password);
     }
 }
