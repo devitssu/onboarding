@@ -11,6 +11,7 @@ import com.intern.onboarding.exception.AlreadyExistUsernameException;
 import com.intern.onboarding.exception.InvalidSignInException;
 import com.intern.onboarding.exception.UnAuthorized;
 import com.intern.onboarding.infra.security.jwt.JwtUtil;
+import com.intern.onboarding.infra.security.jwt.TokenType;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
 import lombok.RequiredArgsConstructor;
@@ -57,6 +58,8 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public SignInResponse getNewAccessToken(String refreshToken) {
         Jws<Claims> claimsJws = jwtUtil.validateToken(refreshToken).orElseThrow(UnAuthorized::new);
+        if (!TokenType.REFRESH_TOKEN.name().equals(claimsJws.getPayload().get("type"))) throw new UnAuthorized();
+
         Long id = Long.valueOf(claimsJws.getPayload().getSubject());
         Role role = Role.valueOf(claimsJws.getPayload().get("role", String.class));
 
