@@ -37,14 +37,14 @@ public class JwtUtil {
     }
 
     public String generateAccessToken(Long id, Role role) {
-        return generateToken(id, role, Duration.ofHours(accessTokenExpirationHour));
+        return generateToken(TokenType.ACCESS_TOKEN, id, role, Duration.ofHours(accessTokenExpirationHour));
     }
 
     public String generateRefreshToken(Long id, Role role) {
-        return generateToken(id, role, Duration.ofHours(refreshTokenExpirationHour));
+        return generateToken(TokenType.REFRESH_TOKEN, id, role, Duration.ofHours(refreshTokenExpirationHour));
     }
 
-    private String generateToken(Long id, Role role, Duration expirationPeriod) {
+    private String generateToken(TokenType type, Long id, Role role, Duration expirationPeriod) {
 
         Instant now = Instant.now();
 
@@ -54,6 +54,7 @@ public class JwtUtil {
                 .expiration(Date.from(now.plus(expirationPeriod)))
                 .subject(id.toString())
                 .claim("role", role)
+                .claim("type", type)
                 .signWith(key)
                 .compact();
     }
