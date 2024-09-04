@@ -11,4 +11,6 @@ public interface AuthService {
     SignInResponse signIn(SignInRequest request);
 
     String generateRefreshToken(SignInRequest request);
+
+    SignInResponse getNewAccessToken(String refreshToken);
 }

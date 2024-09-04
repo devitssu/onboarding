@@ -9,7 +9,10 @@ import com.intern.onboarding.domain.user.User;
 import com.intern.onboarding.domain.user.UserRepository;
 import com.intern.onboarding.exception.AlreadyExistUsernameException;
 import com.intern.onboarding.exception.InvalidSignInException;
+import com.intern.onboarding.exception.UnAuthorized;
 import com.intern.onboarding.infra.security.jwt.JwtUtil;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jws;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -49,5 +52,14 @@ public class AuthServiceImpl implements AuthService {
                 .orElseThrow(InvalidSignInException::new);
 
         return jwtUtil.generateRefreshToken(user.getId(), user.getRole());
+    }
+
+    @Override
+    public SignInResponse getNewAccessToken(String refreshToken) {
+        Jws<Claims> claimsJws = jwtUtil.validateToken(refreshToken).orElseThrow(UnAuthorized::new);
+        Long id = Long.valueOf(claimsJws.getPayload().getSubject());
+        Role role = Role.valueOf(claimsJws.getPayload().get("role", String.class));
+
+        return new SignInResponse(jwtUtil.generateAccessToken(id, role));
     }
 }
