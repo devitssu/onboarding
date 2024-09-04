@@ -1,5 +1,7 @@
 package com.intern.onboarding.infra.security.jwt;
 
+import com.intern.onboarding.exception.AccessDenied;
+import com.intern.onboarding.exception.UnAuthorized;
 import com.intern.onboarding.infra.security.UserPrincipal;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -30,13 +32,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         Optional<String> bearerToken = getBearerToken(request);
         bearerToken.ifPresent(token -> {
             jwtUtil.validateToken(token).ifPresentOrElse(claims -> {
+                if (!TokenType.ACCESS_TOKEN.name().equals(claims.getPayload().get("type")))
+                    throw new UnAuthorized();
                 JwtAuthenticationToken authenticationToken = new JwtAuthenticationToken(
                         new UserPrincipal(Long.parseLong(claims.getPayload().getSubject()), Set.of(claims.getPayload().get("role", String.class))),
                         new WebAuthenticationDetailsSource().buildDetails(request)
                 );
                 SecurityContextHolder.getContext().setAuthentication(authenticationToken);
             }, () -> {
-//                throw new AccessDeniedException("접근 권한이 없습니다.");
+                throw new AccessDenied();
             });
         });
 
