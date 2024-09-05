@@ -18,6 +18,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
+
 @Service
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
@@ -44,7 +46,7 @@ public class AuthServiceImpl implements AuthService {
         if (!user.checkPassword(request.password(), passwordEncoder))
             throw new InvalidSignInException();
 
-        return new SignInResponse(jwtUtil.generateAccessToken(user.getId(), user.getRole()));
+        return new SignInResponse(jwtUtil.generateAccessToken(Instant.now(), user.getId(), user.getRole()));
     }
 
     @Override
@@ -52,17 +54,17 @@ public class AuthServiceImpl implements AuthService {
         User user = userRepository.findByUsername(request.username())
                 .orElseThrow(InvalidSignInException::new);
 
-        return jwtUtil.generateRefreshToken(user.getId(), user.getRole());
+        return jwtUtil.generateRefreshToken(Instant.now(), user.getId(), user.getRole());
     }
 
     @Override
     public SignInResponse getNewAccessToken(String refreshToken) {
-        Jws<Claims> claimsJws = jwtUtil.validateToken(refreshToken).orElseThrow(UnAuthorized::new);
+        Jws<Claims> claimsJws = jwtUtil.getClaims(refreshToken);
         if (!TokenType.REFRESH_TOKEN.name().equals(claimsJws.getPayload().get("type"))) throw new UnAuthorized();
 
         Long id = Long.valueOf(claimsJws.getPayload().getSubject());
         Role role = Role.valueOf(claimsJws.getPayload().get("role", String.class));
 
-        return new SignInResponse(jwtUtil.generateAccessToken(id, role));
+        return new SignInResponse(jwtUtil.generateAccessToken(Instant.now(), id, role));
     }
 }
