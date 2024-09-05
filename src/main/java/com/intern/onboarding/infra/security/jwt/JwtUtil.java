@@ -1,11 +1,11 @@
 package com.intern.onboarding.infra.security.jwt;
 
 import com.intern.onboarding.domain.user.Role;
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jws;
-import io.jsonwebtoken.Jwts;
+import com.intern.onboarding.exception.JwtException;
+import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import io.jsonwebtoken.security.SignatureException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -14,7 +14,6 @@ import java.security.Key;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Date;
-import java.util.Optional;
 
 @Component
 public class JwtUtil {
@@ -36,17 +35,15 @@ public class JwtUtil {
         this.refreshTokenExpirationHour = refreshTokenExpirationHour;
     }
 
-    public String generateAccessToken(Long id, Role role) {
-        return generateToken(TokenType.ACCESS_TOKEN, id, role, Duration.ofHours(accessTokenExpirationHour));
+    public String generateAccessToken(Instant now, Long id, Role role) {
+        return generateToken(now, TokenType.ACCESS_TOKEN, id, role, Duration.ofHours(accessTokenExpirationHour));
     }
 
-    public String generateRefreshToken(Long id, Role role) {
-        return generateToken(TokenType.REFRESH_TOKEN, id, role, Duration.ofHours(refreshTokenExpirationHour));
+    public String generateRefreshToken(Instant now, Long id, Role role) {
+        return generateToken(now, TokenType.REFRESH_TOKEN, id, role, Duration.ofHours(refreshTokenExpirationHour));
     }
 
-    private String generateToken(TokenType type, Long id, Role role, Duration expirationPeriod) {
-
-        Instant now = Instant.now();
+    private String generateToken(Instant now, TokenType type, Long id, Role role, Duration expirationPeriod) {
 
         return Jwts.builder()
                 .issuer(issuer)
@@ -59,12 +56,19 @@ public class JwtUtil {
                 .compact();
     }
 
-    public Optional<Jws<Claims>> validateToken(String token) {
+    public Jws<Claims> getClaims(String token) throws RuntimeException {
         try {
-            Jws<Claims> claimsJws = Jwts.parser().verifyWith((SecretKey) key).build().parseSignedClaims(token);
-            return Optional.of(claimsJws);
+            return Jwts.parser().verifyWith((SecretKey) key).build().parseSignedClaims(token);
+        } catch (ExpiredJwtException ee) {
+            throw new JwtException("만료된 토큰입니다.");
+        } catch (SignatureException se) {
+            throw new JwtException("잘못된 시그니처입니다.");
+        } catch (MalformedJwtException me) {
+            throw new JwtException("손상된 토큰입니다.");
+        } catch (UnsupportedJwtException ue) {
+            throw new JwtException("지원하지 않는 토큰입니다.");
         } catch (Exception e) {
-            return Optional.empty();
+            throw new JwtException("유효하지 않은 토큰입니다.");
         }
     }
 }
